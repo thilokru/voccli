@@ -29,7 +29,7 @@ class ClientStarter: Runnable {
         LOCAL {
             override fun connect(target: String, loadLocation: File?): VocabularyService {
                 val server = ServerStarter(defaultLocation = target, loadLocation = loadLocation)
-                thread(start = true, isDaemon = true) { server.run() }
+                server.run()
                 return server.getService()
             }
         }, WEB {

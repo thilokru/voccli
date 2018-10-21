@@ -1,21 +1,18 @@
-CREATE TABLE IF NOT EXISTS Words {
-    word_id integer AUTO_INCREMENT PRIMARY KEY,
-    text longvarchar NOT NULL,
-    language CHAR(20) NOT NULL,
-    UNIQUE(text)
-};
-CREATE TABLE IF NOT EXISTS Vocable {
-    vocable_id integer AUTO_INCREMENT PRIMARY KEY,
-    source_word integer,
-    target_word integer,
-    next_due date,
-    active integer CHECK(completed IN (1, 0)),
-    FOREIGN KEY(source_word) REFERENCES Words(word_id),
-    FOREIGN KEY(target_word) REFERENCES Words(word_id)
-};
-CREATE TABLE IF NOT EXISTS Associations {
-    vocable_id integer,
-    associationKey longvarchar NOT NULL,
-    associationValue longvarchar,
-    FOREIGN KEY(vocable_id) REFERENCES Vocable(vocable_id)
-};
+CREATE TABLE IF NOT EXISTS Questions (
+    question_id INT AUTO_INCREMENT PRIMARY KEY,
+    question LONGVARCHAR NOT NULL,
+    question_language CHAR(20) NOT NULL,
+    answer LONGVARCHAR NOT NULL,
+    answer_language CHAR(20) NOT NULL
+);
+CREATE TABLE IF NOT EXISTS Associations (
+    question_id INT NOT NULL,
+    associationKey LONGVARCHAR NOT NULL,
+    associationValue LONGVARCHAR,
+    FOREIGN KEY(question_id) REFERENCES Questions(question_id)
+);
+CREATE TABLE IF NOT EXISTS Active (
+    question_id INT NOT NULL,
+    next_due DATE NOT NULL,
+    FOREIGN KEY(question_id) REFERENCES Questions(question_id)
+)

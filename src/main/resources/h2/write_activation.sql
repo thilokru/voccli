@@ -1,0 +1,1 @@
+INSERT INTO Active(question_id, next_due) VALUES(?, TODAY)

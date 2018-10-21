@@ -4,6 +4,9 @@ package com.mhfs.voc
  * This interface specifies the behaviour of the application providing the questions.
  * As this may later be implemented by a web service, and the user may be malicious, it is vital that all necessary data
  * is passed to the client, while keeping the state on the server, to prevent malicious tampering.
+ *
+ * If this API is called over network, then a connection loss will cancel any remaining sessions. Therefore, any newly
+ * connected client can assume a blank slate and therefore requires fewer API calls.
  */
 
 interface VocabularyService {
@@ -19,14 +22,6 @@ interface VocabularyService {
     }
 
     /**
-     * Creates a new session with questions.
-     * @throws IllegalStateException if a session already exists.
-     * @param maxCount The maximum amount of questions in the session. Negative values indicate no limit.
-     * @return the number of actual questions in the session
-     */
-    fun createSession(maxCount: Int): Int
-
-    /**
      * Creates a new activation session.
      *
      * Note, that the selector may be interpreted as a script language or a regex. This could cause infinite loops or long run times.
@@ -34,35 +29,16 @@ interface VocabularyService {
      * an exception may be thrown, see below.
      * @throws IllegalStateException if a session already exists.
      * @throws IllegalArgumentException if the selector argument caused an exception. It should specify the precise cause.
-     * @param maxCount The maximum amount of questions in the session. Negative values indicate no limit.
-     * @param selector Contains information about what questions to activate.
+     * @param description A object describing the desired session.
+     * @return The state of the created session.
      */
-    fun createActivationSession(maxCount: Int, selector: String): Int
+    fun createSession(description: SessionDescription): State
 
     /**
      * Cancels the currently active session. Does nothing, if there is no active session.
      * A session is automatically canceled, if no further questions exist
      */
-    fun cancelSession()
-
-    /**
-     * Checks if there is currently an active session
-     * @return if there is a session.
-     */
-    fun hasSession(): Boolean
-
-    /**
-     * Returns the amount of remaining questions
-     * @throws IllegalStateException if no session exists
-     * @return the number of remaining questions
-     */
-    fun getRemainingQuestionsCount(): Int
-
-    /**
-     * Returns the next question in the session, if one is available
-     * @throws IllegalStateException if no session exists.
-     */
-    fun currentQuestion(): Question
+    fun cancelSession(): State
 
     /**
      * The state must fulfill the following conditions:
@@ -77,28 +53,76 @@ interface VocabularyService {
      * If the answer was wrong, the state may not advance. To ensure the user learned the word correctly, the user
      * needs to reenter it.
      *
+     * If the answer was correct, then the call will advance to the next question.
+     *
      * @throws IllegalStateException if any of the above conditions fails
      *
      * @param answer The answer, which shall be checked
-     * @return An AnswerResult, indicating if the answer was correct or wrong or needs user interaction
+     * @return The current state, containing weather the answer was correct in {@link State.lastResult}
      */
-    fun answer(answer: String): AnswerResult
-
-    class AnswerResult(val result: ResultType, val correctAnswer: Word)
-    enum class ResultType {CORRECT, WRONG, UNDETERMINED}
+    fun answer(answer: String): State
 
     /**
      * If the previous answer returned {@code ResultType.UNDETERMINED}, then the client calls this method to indicate
      * if the question was correct of not.
+     * Independent of the argument, it will advance to the next question.
      * @throws IllegalStateException if the current state is not one with a valid session and the previous answer having the above state.
      * @param correct Indicating, if the previous answer was correct (true) or not (false).
+     * @return The state of the session.
      */
-    fun correction(correct: Boolean)
+    fun correction(correct: Boolean): State
 
     /**
-     * If the session is a activation session, see {@code com.mhfs.voc.Session.isActivation}, then the client may ask the solution to a question.
-     * @throws IllegalStateException if there is no current session or it is not an activation session or if no current question exists.
-     * @return The solution to the current question
+     * If the other specified methods are called, it should not be necessary to call this method.
+     * However, should the client lose the state, then it may call this method to retrieve it.
+     * This method will not change the state and can therefore be called as many times as necessary.
+     * @return The state of the session.
      */
-    fun getActivationSolution(): Word
+    fun getState(): State
+
+    /**
+     * This describes the session a client wants to create when calling #createSession.
+     * The fields assumed to be universal are {@code isActivation} and {@code maxCount}.
+     * Implementers are encouraged to extend this class to convey additional information.
+     */
+    open class SessionDescription(val isActivation: Boolean, val maxCount: Int)
+
+    class Result(val type: ResultType, val solution: String)
+
+    /**
+     * To reduce API calls (this may be done over REST-requests and may therefore require a lot of resources), this State
+     * object shall be returned.
+     */
+    class State(currentQuestion: Question?, lastResult: Result?, remainingQuestions: Int) {
+        /**
+         * This field holds the next question. Its answer field may be null, indicating, that we currently are in a
+         * vocabulary test. If it is null, the meaning depends on the states of the other fields.
+         *
+         * If currentQuestion is null, lastResult is null and remainingQuestions is 0, then there currently is no session.
+         * If currentQuestion is null, but lastResult is in state WRONG, then the answer needs to be corrected.
+         * If currentQuestion is null, but lastResult is in state UNDETERMINED, then the correctness of the answer must be reported.
+         */
+        val currentQuestion: Question? = currentQuestion
+
+        /**
+         * Holds information about weather the last answer was correct. Can be null, if no previous answer exists.
+         */
+        val lastResult: Result? = lastResult
+
+        /**
+         * Remaining questions.
+         */
+        val remainingQuestions: Int = remainingQuestions
+    }
+
+    /**
+     * This class describes a question, including the question itself, its language, the target language,
+     * if currently accssible to the user, the solution to the question and the possibility to provide additional
+     * associated data.
+     */
+    open class Question(val question: String, val questionLanguage: String,
+                   val solution: String?, val targetLanguage: String,
+                   val associatedData: MutableMap<String, String>)
+
+    enum class ResultType {CORRECT, WRONG, UNDETERMINED}
 }

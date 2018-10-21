@@ -6,7 +6,6 @@ import java.lang.NumberFormatException
 
 class ActivationInitHandler(private val parent: TerminalHandler, private val service: VocabularyService): TerminalHandler {
 
-    private var step = 1
     private var count: Int = 0
     private lateinit var selector: String
 
@@ -16,41 +15,28 @@ class ActivationInitHandler(private val parent: TerminalHandler, private val ser
             printHelp(writer)
             return this
         }
-        when(step) {
-            1 -> {
-                try {
-                    count = input.toInt()
-                    step = 2
-                } catch (e: NumberFormatException) {
-                    writer.println("This is not a number.")
-                }
-                return this
+        try {
+            count = input.toInt()
+            val state = service.createSession(VocabularyService.SessionDescription(true, count))
+            if (state.remainingQuestions == 0) {
+                writer.println("No questions.")
+                return parent
             }
-            2 -> {
-                try {
-                    service.createActivationSession(count, input)
-                } catch (e: IllegalArgumentException) {
-                    writer.println("An error occurred parsing the selector:")
-                    e.printStackTrace(writer)
-                    return this
-                }
-                return QuestionHandler(parent, service, isActivation = true)
-            }
+        } catch (e: NumberFormatException) {
+            writer.println("This is not a number.")
+            return this
         }
-        return this
+        return QuestionHandler(parent, service)
     }
 
     private fun printHelp(writer: PrintWriter) {
         defaultHelp(writer)
-        when (step) {
-            1 -> writer.println("Please enter the amount of words to activate.")
-            2 -> writer.println("Please enter a selector. See documentation.")
-        }
+        writer.println("Please enter the amount of words to activate.")
     }
 
-    override fun getLeftPrompt() = "activation " + if(step == 1) "count" else "selector"
+    override fun getLeftPrompt() = "activation count"
 
-    override fun getRightPrompt() = "$step/$TOTAL_STEPS"
+    override fun getRightPrompt() = ""
 
     override fun handleInterrupt(writer: PrintWriter): TerminalHandler? = parent
 

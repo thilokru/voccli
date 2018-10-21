@@ -15,7 +15,11 @@ class QuestionInitHandler(private val parent: TerminalHandler, private val servi
         }
         try {
             val count = input.toInt()
-            service.createSession(count)
+            val state = service.createSession(VocabularyService.SessionDescription(false, count))
+            if (state.remainingQuestions == 0) {
+                writer.println("No questions.")
+                return parent
+            }
             return QuestionHandler(parent, service)
         } catch (e: NumberFormatException) {
             writer.println("This is not a number.")

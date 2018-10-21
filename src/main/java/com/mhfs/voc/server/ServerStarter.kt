@@ -23,8 +23,8 @@ class ServerStarter(defaultLocation: String = "voc_db", loadLocation: File? = nu
     private lateinit var apiProvider: ServerAPIProvider
 
     override fun run() {
-        val connection = DriverManager.getConnection(dbLocation) ?: throw NullPointerException("DB not accessible.")
-        apiProvider = ServerAPIProvider(DBAccess("h2", connection))
+        val connection = DriverManager.getConnection("jdbc:h2:$dbLocation") ?: throw NullPointerException("DB not accessible.")
+        apiProvider = ServerAPIProvider(DBAccess("h2", connection), arrayOf(0, 1, 3, 7, 14, 60))
 
         if (httpServer) {
             val baseURI = "http://localhost:8080/"

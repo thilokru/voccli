@@ -1,14 +1,16 @@
 package com.mhfs.voc.cli
 
 import com.mhfs.voc.VocabularyService
+import com.mhfs.voc.VocabularyService.*
 import java.io.PrintWriter
 
-class QuestionHandler(private val parent: TerminalHandler, private val service: VocabularyService,
-                      private val isActivation: Boolean = false) : TerminalHandler {
+class QuestionHandler(private val parent: TerminalHandler, private val service: VocabularyService) : TerminalHandler {
 
-    private var isVerifying = false
+    private var state = service.getState()
 
     override fun handleInput(input: String, writer: PrintWriter): TerminalHandler? {
+        val isVerifying = state.currentQuestion == null && state.lastResult != null && state.lastResult!!.type == ResultType.UNDETERMINED
+
         if (input == ":q") {
             service.cancelSession()
             return parent
@@ -21,41 +23,44 @@ class QuestionHandler(private val parent: TerminalHandler, private val service: 
             }
             return this
         }
+
         if (isVerifying) {
             val correct = input.toLowerCase().startsWith("y")
             writer.println("Marking answer accordingly.")
-            service.correction(correct)
-            isVerifying = false
+            state = service.correction(correct)
         } else {
-            val result = service.answer(input)
-            when (result.result) {
-                VocabularyService.ResultType.CORRECT -> writer.println("Correct.")
-                VocabularyService.ResultType.WRONG -> writer.println("Wrong. Try again.")
-                VocabularyService.ResultType.UNDETERMINED -> {
+            state = service.answer(input)
+            when (state.lastResult!!.type) {
+                ResultType.CORRECT -> writer.println("Correct.")
+                ResultType.WRONG -> writer.println("Wrong. Try again.")
+                ResultType.UNDETERMINED -> {
                     writer.println("Please verify.")
-                    isVerifying = true
                 }
             }
-            writer.println("Solution: ${result.correctAnswer.text}")
+            writer.println("Solution: ${state.lastResult!!.solution}")
+        }
+        if (state.remainingQuestions == 0) {
+            writer.println("Session completed.")
+            return parent
         }
         return this
     }
 
     override fun getLeftPrompt(): String {
-        return if (isVerifying) {
+        return if (state.lastResult != null && state.lastResult!!.type == ResultType.UNDETERMINED) {
             "Correct? (y/n)"
-        } else {
-            val q = service.currentQuestion()
+        } else if(state.currentQuestion != null) {
+            val q = state.currentQuestion!!
             val base = "${q.questionLanguage} -> ${q.targetLanguage}: ${q.question}"
-            if (isActivation) {
-                base + " -> ${service.getActivationSolution().text}"
+            if (q.solution != null) {
+                base + " -> ${q.solution}"
             } else {
                 base
             }
-        }
+        } else ""
     }
 
-    override fun getRightPrompt() = "Remaining: ${service.getRemainingQuestionsCount()}"
+    override fun getRightPrompt() = "Remaining: ${state.remainingQuestions}"
 
     override fun handleInterrupt(writer: PrintWriter): TerminalHandler? = null
 
