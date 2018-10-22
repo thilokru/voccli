@@ -12,9 +12,8 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
 
     private var session: MutableList<DBAccess.DBQuestion>? = null
     private var isActivation = false
-    private var isCorrecting = false
     private var previousResult: Result? = null
-    private var currentQuestion: Question? = null
+    private var currentQuestion: DBAccess.DBQuestion? = null
 
     @Path("session")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -45,7 +44,7 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
         return if (session != null) {
             var q  = currentQuestion
             if (censor &&!isActivation && q != null)
-                q = Question(q.question, q.questionLanguage, null, q.targetLanguage, q.associatedData)
+                q = DBAccess.DBQuestion(q.id, q.question, q.questionLanguage, null, q.targetLanguage, q.associatedData)
             State(q, previousResult, session?.size ?: 0)
         } else {
             State(null, previousResult, 0)
@@ -66,11 +65,13 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
     override fun answer(answer: String): State {
         if (currentQuestion == null)
             throw IllegalStateException("No current question exists to be answered.")
-        if(answer == currentQuestion?.solution) {
-            previousResult = Result(ResultType.CORRECT, currentQuestion!!.solution!!)
+        val solution = currentQuestion!!.solution!!
+        val reducedSolution = solution.replace(Regex("(\\(|\\)|(\\[[^\\]]*]))"), "").trim()
+        if(answer == currentQuestion?.solution || answer == reducedSolution) {
             markQuestion(true)
+        } else if(currentQuestion!!.solution!!.contains(answer)) {
+            previousResult = Result(ResultType.UNDETERMINED, currentQuestion!!.solution!!)
         } else {
-            previousResult = Result(ResultType.WRONG, currentQuestion!!.solution!!)
             markQuestion(false)
         }
         return getState(true)
@@ -86,28 +87,38 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
         if (currentQuestion == null) {
             throw IllegalStateException("No current question.")
         }
-        if (!isCorrecting) {
+        if (!(previousResult != null && previousResult!!.type == ResultType.UNDETERMINED)) {
             throw IllegalStateException("Not correcting.")
         }
         markQuestion(correct)
-
         return getState()
     }
 
     private fun markQuestion(correct: Boolean) {
+        session!!.remove(currentQuestion)
+        val q = currentQuestion!!
+        val currentPhase = (q.associatedData["phase"]?.toInt() ?:0)
         if (correct) {
-            session!!.remove(currentQuestion)
-            val q = currentQuestion!!
-            val newPhase = (q.associatedData["phase"]?.toInt() ?:0) + 1
+            val newPhase = currentPhase + 1
             q.associatedData["phase"] = newPhase.toString()
             if (isActivation) {
-                dbAccess.activate(q as DBAccess.DBQuestion)
+                dbAccess.activate(q)
             } else {
                 val cal = Calendar.getInstance()
                 cal.time = Date()
                 cal.add(Calendar.DAY_OF_MONTH, phaseDuration[newPhase - 1])
-                dbAccess.updateQuestion(q as DBAccess.DBQuestion, cal.time)
+                dbAccess.updateQuestion(q, cal.time)
             }
+            previousResult = Result(ResultType.CORRECT, currentQuestion!!.solution!!)
+        } else if (!isActivation) {
+            session!!.add(currentQuestion!!) //Q was answered incorrectly, we need to ask again.
+            val newPhase = Math.min(currentPhase - 1, 1)
+            q.associatedData["phase"] = newPhase.toString()
+            val cal = Calendar.getInstance()
+            cal.time = Date()
+            cal.add(Calendar.DAY_OF_MONTH, phaseDuration[newPhase - 1])
+            dbAccess.updateQuestion(q, cal.time)
+            previousResult = Result(ResultType.WRONG, currentQuestion!!.solution!!)
         }
         if (session!!.isEmpty()) {
             session = null

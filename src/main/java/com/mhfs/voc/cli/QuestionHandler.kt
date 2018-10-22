@@ -9,14 +9,12 @@ class QuestionHandler(private val parent: TerminalHandler, private val service: 
     private var state = service.getState()
 
     override fun handleInput(input: String, writer: PrintWriter): TerminalHandler? {
-        val isVerifying = state.currentQuestion == null && state.lastResult != null && state.lastResult!!.type == ResultType.UNDETERMINED
-
         if (input == ":q") {
             service.cancelSession()
             return parent
         } else if (input == ":h") {
             defaultHelp(writer)
-            if (isVerifying) {
+            if (isVerifying()) {
                 writer.println("Please enter (y/n) weather the answer was correct.")
             } else {
                 writer.println("Please write the answer to the question.")
@@ -24,7 +22,7 @@ class QuestionHandler(private val parent: TerminalHandler, private val service: 
             return this
         }
 
-        if (isVerifying) {
+        if (isVerifying()) {
             val correct = input.toLowerCase().startsWith("y")
             writer.println("Marking answer accordingly.")
             state = service.correction(correct)
@@ -47,7 +45,7 @@ class QuestionHandler(private val parent: TerminalHandler, private val service: 
     }
 
     override fun getLeftPrompt(): String {
-        return if (state.lastResult != null && state.lastResult!!.type == ResultType.UNDETERMINED) {
+        return if (isVerifying()) {
             "Correct? (y/n)"
         } else if(state.currentQuestion != null) {
             val q = state.currentQuestion!!
@@ -58,6 +56,10 @@ class QuestionHandler(private val parent: TerminalHandler, private val service: 
                 base
             }
         } else ""
+    }
+
+    private fun isVerifying(): Boolean {
+        return state.lastResult != null && state.lastResult!!.type == ResultType.UNDETERMINED
     }
 
     override fun getRightPrompt() = "Remaining: ${state.remainingQuestions}"
