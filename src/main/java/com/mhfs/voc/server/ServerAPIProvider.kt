@@ -112,7 +112,7 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
             previousResult = Result(ResultType.CORRECT, currentQuestion!!.solution!!)
         } else if (!isActivation) {
             session!!.add(currentQuestion!!) //Q was answered incorrectly, we need to ask again.
-            val newPhase = Math.min(currentPhase - 1, 1)
+            val newPhase = Math.max(currentPhase - 1, 1)
             q.associatedData["phase"] = newPhase.toString()
             val cal = Calendar.getInstance()
             cal.time = Date()
