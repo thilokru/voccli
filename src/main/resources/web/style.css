@@ -15,7 +15,7 @@ body {
 aside {
   grid-area: sidebar;
   display: grid;
-  grid-template-rows: 2em 2em auto;
+  grid-template-rows: auto 2em;
   grid-row-gap: 0.2em
 }
 section {
@@ -48,6 +48,18 @@ button:hover:enabled {
   border: 1px solid blue;
 }
 button:disabled {
+  color: grey;
+  border: 1px solid lightgray
+}
+input {
+  border-radius: 0.2em;
+  border: 1px solid grey;
+}
+input:hover:enabled {
+  box-shadow: 0px 0px 4px blue;
+  border: 1px solid blue;
+}
+input:disabled {
   color: grey;
   border: 1px solid lightgray
 }
@@ -90,4 +102,5 @@ textarea {
   padding: 0.5em 1em 0.5em 1em;
   border-radius: 1em;
   background: #FFFFFF;
+  box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.2);
 }

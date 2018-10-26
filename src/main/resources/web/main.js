@@ -2,20 +2,19 @@ var persistentState;
 let states = {Questions: 0, Correcting: 1, Feedback: 2, NoQuestions: 4};
 Object.freeze(states);
 var systemState = states.NoQuestions;
-
-function createActivationSession() {
-    const myBody = {
-        activation: true,
-        maxCount: 10
-    };
-    console.log("Invoking session creation.")
-    getPOSTResponse("/api/session", myBody).then(displayState);
+window.onunload = function() {
+    fetch('/api/cancel');
 }
 
-function createTrainingSession() {
+function onCreateSession() {
+    var qC = -1;
+    var tmp = parseInt(questionCount.value);
+    if (tmp > 0) {
+        qC = tmp
+    }
     const myBody = {
-        activation: false,
-        maxCount: 10
+        activation: isActivation.checked,
+        maxCount: qC
     };
     console.log("Invoking session creation.")
     getPOSTResponse("/api/session", myBody).then(displayState);
@@ -72,8 +71,7 @@ function displayState(state) {
 
     //Enable and disable UI state according to systemState
     if (systemState == states.NoQuestions) { //A session does not exist.
-        session.disabled = false;
-        activate.disabled = false;
+        disableForm(false)
         userAnswer.disabled = true;
         answer.disabled = true
         correct.disabled = true;
@@ -84,8 +82,7 @@ function displayState(state) {
         info.innerHTML = "";
         userAnswer.value = "";
     } else if (systemState == states.Questions) {
-        session.disabled = true;
-        activate.disabled = true;
+        disableForm(true)
         userAnswer.disabled = false;
         answer.disabled = false
         correct.disabled = true;
@@ -101,8 +98,7 @@ function displayState(state) {
         }
         info.innerHTML = "Remaining: " + state.remainingQuestions;
     } else if (systemState == states.Correcting) {
-        session.disabled = true;
-        activate.disabled = true;
+        disableForm(true)
         userAnswer.disabled = true;
         answer.disabled = true;
         correct.disabled = true;
@@ -110,14 +106,23 @@ function displayState(state) {
 
         solution.innerHTML = state.lastResult.solution;
     } else if (systemState == states.Feedback) {
-        session.disabled = true;
-        activate.disabled = true;
+        disableForm(true)
         userAnswer.disabled = true;
         answer.disabled = true;
         correct.disabled = false;
         incorrect.disabled = false;
 
         solution.innerHTML = state.lastResult.solution;
+    }
+}
+
+function disableForm(disabled) {
+    questionCount.disabled = disabled
+    isActivation.disabled = disabled
+    createSession.disabled = disabled
+    if (!disabled) {
+        questionCount.value = "";
+        isActivation.checked = false;
     }
 }
 
