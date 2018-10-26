@@ -6,7 +6,7 @@ import java.util.*
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 
-@Path("vocserv")
+@Path("/")
 @Produces(MediaType.APPLICATION_JSON)
 class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) : VocabularyService {
 
@@ -60,7 +60,7 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
     }
 
     @Path("answer")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.TEXT_PLAIN)
     @POST
     override fun answer(answer: String): State {
         if (currentQuestion == null)
@@ -112,7 +112,7 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
             previousResult = Result(ResultType.CORRECT, currentQuestion!!.solution!!)
         } else if (!isActivation) {
             session!!.add(currentQuestion!!) //Q was answered incorrectly, we need to ask again.
-            val newPhase = Math.min(currentPhase - 1, 1)
+            val newPhase = Math.max(currentPhase - 1, 1)
             q.associatedData["phase"] = newPhase.toString()
             val cal = Calendar.getInstance()
             cal.time = Date()

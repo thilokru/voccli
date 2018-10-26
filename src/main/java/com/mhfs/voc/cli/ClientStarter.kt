@@ -5,7 +5,9 @@ import com.mhfs.voc.VocabularyService
 import com.mhfs.voc.server.ServerStarter
 import picocli.CommandLine
 import picocli.CommandLine.*
+import java.awt.Desktop
 import java.io.File
+import java.net.URI
 import kotlin.concurrent.thread
 
 @Command(name = "voccli", description = ["A CLI vocabulary tool."], mixinStandardHelpOptions = true,
@@ -22,7 +24,10 @@ class ClientStarter: Runnable {
     private var target = "voc_db"
 
     override fun run() {
-        CLI(RootHandler(endPoint.connect(target, loadLocation))).start()
+        val service = endPoint.connect(target, loadLocation)
+        if (endPoint == EndPoint.BROWSER)
+            return
+        CLI(RootHandler(service)).start()
     }
 
     enum class EndPoint {
@@ -35,6 +40,13 @@ class ClientStarter: Runnable {
         }, WEB {
             override fun connect(target: String, loadLocation: File?): VocabularyService {
                 return RESTService(target)
+            }
+        }, BROWSER {
+            override fun connect(target: String, loadLocation: File?): VocabularyService {
+                val server = ServerStarter(defaultLocation = target, loadLocation = loadLocation, httpServer = true)
+                server.run()
+                Desktop.getDesktop().browse(URI("http://localhost:8080/index.html"))
+                return server.getService()
             }
         };
         abstract fun connect(target: String, loadLocation: File?): VocabularyService

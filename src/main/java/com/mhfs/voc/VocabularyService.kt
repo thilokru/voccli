@@ -85,7 +85,14 @@ interface VocabularyService {
      * The fields assumed to be universal are {@code isActivation} and {@code maxCount}.
      * Implementers are encouraged to extend this class to convey additional information.
      */
-    open class SessionDescription(val isActivation: Boolean, val maxCount: Int)
+    open class SessionDescription() {
+        constructor(isActivation: Boolean, maxCount: Int): this() {
+            this.isActivation = isActivation
+            this.maxCount = maxCount
+        }
+        var isActivation: Boolean = false
+        var maxCount: Int = 0
+    }
 
     class Result(val type: ResultType, val solution: String)
 

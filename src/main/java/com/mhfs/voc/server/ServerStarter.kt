@@ -2,6 +2,7 @@ package com.mhfs.voc.server
 
 import com.mhfs.voc.ManifestVersionProvider
 import com.mhfs.voc.VocabularyService
+import org.glassfish.grizzly.http.server.CLStaticHttpHandler
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory
 import org.glassfish.jersey.server.ResourceConfig
 import picocli.CommandLine
@@ -27,9 +28,16 @@ class ServerStarter(defaultLocation: String = "voc_db", loadLocation: File? = nu
         apiProvider = ServerAPIProvider(DBAccess("h2", connection), arrayOf(0, 1, 3, 7, 14, 60))
 
         if (httpServer) {
-            val baseURI = "http://localhost:8080/"
-            val config = ResourceConfig().registerInstances(apiProvider)
+            val baseURI = "http://localhost:8080/api"
+
+            val config = ResourceConfig()
+            config.registerInstances(apiProvider)
+
             val server = GrizzlyHttpServerFactory.createHttpServer(URI.create(baseURI), config)
+
+            val staticResources = CLStaticHttpHandler(this::class.java.classLoader, "/web/")
+            server.serverConfiguration.addHttpHandler(staticResources, "/")
+
             Runtime.getRuntime().addShutdownHook(thread(start = false) { server.shutdown() })
         }
     }
