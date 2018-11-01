@@ -80,6 +80,7 @@ function displayState(state) {
         solution.innerHTML = "";
         question.innerHTML = "";
         info.innerHTML = "";
+        remaining.innerHTML = "Remaining: 0";
         userAnswer.value = "";
     } else if (systemState == states.Questions) {
         disableForm(true)
@@ -96,7 +97,13 @@ function displayState(state) {
         } else {
             solution.innerHTML = "";
         }
-        info.innerHTML = "Remaining: " + state.remainingQuestions;
+        var phase = state.currentQuestion.associatedData.phase;
+        if (phase == null || phase == undefined) {
+            phase = 0;
+        }
+        var usage = state.currentQuestion.associatedData.usage;
+        info.innerHTML = "Phase: " + phase + " Usage: " + usage;
+        remaining.innerHTML = "Remaining: " + state.remainingQuestions;
     } else if (systemState == states.Correcting) {
         disableForm(true)
         userAnswer.disabled = true;

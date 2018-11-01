@@ -78,12 +78,16 @@ textarea {
 #userAnswer{
   grid-area: answer;
 }
+#remaining{
+  grid-area: remaining;
+}
 #controls {
   grid-area: buttons;
   display: grid;
-  grid-template-rows: 1fr 2em 2em;
+  grid-template-rows: 3em 1fr 2em 2em;
   grid-template-columns: 1fr 1fr;
   grid-template-areas:
+    "remaining remaining"
     ". ."
     "answer answer"
     "correct incorrect";
