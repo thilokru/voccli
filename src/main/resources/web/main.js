@@ -3,7 +3,7 @@ let states = {Questions: 0, Correcting: 1, Feedback: 2, NoQuestions: 4};
 Object.freeze(states);
 var systemState = states.NoQuestions;
 window.onunload = function() {
-    fetch('/api/cancel');
+    getPOSTResponse("/api/v1/cancel", null);
 }
 
 function onCreateSession() {
@@ -13,21 +13,21 @@ function onCreateSession() {
         qC = tmp
     }
     const myBody = {
-        activation: isActivation.checked,
+        isActivation: isActivation.checked,
         maxCount: qC
     };
     console.log("Invoking session creation.")
-    getPOSTResponse("/api/session", myBody).then(displayState);
+    getPOSTResponse("/api/v1/session", myBody).then(displayState);
 }
 
 function onAnswer() { //Handles button presses from button 'answer'
     console.log("Posting answer: " + userAnswer.value)
-    getPOSTResponseRawIn("/api/answer", userAnswer.value, 'text/plain').then(displayState);
+    getPOSTResponseRawIn("/api/v1/answer", userAnswer.value, 'text/plain').then(displayState);
 }
 
 function onCorrect() { //Handles button presses from button 'correct'
     console.log("Submitting correction: " + true)
-    getPOSTResponse("/api/correction", true).then(displayState);
+    getPOSTResponse("/api/v1/correction", true).then(displayState);
 }
 
 function onIncorrect() { //Handles button presses from button 'incorrect'
@@ -35,7 +35,7 @@ function onIncorrect() { //Handles button presses from button 'incorrect'
         displayState(persistentState);
     } else {
         console.log("Submitting correction: " + false)
-        getPOSTResponse("/api/correction", false).then(displayState)
+        getPOSTResponse("/api/v1/correction", false).then(displayState)
     }
 }
 

@@ -1,55 +1,73 @@
 package com.mhfs.voc.cli
 
 import com.mhfs.voc.VocabularyService
-import com.mhfs.voc.VocabularyService.Companion.ILLEGAL_STATE_STATUS
-import javax.ws.rs.client.ClientBuilder
-import javax.ws.rs.client.Entity
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.apache.Apache
+import io.ktor.client.features.json.GsonSerializer
+import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import kotlinx.coroutines.runBlocking
+import javax.net.ssl.SSLContext
 
 /**
  * Implements the client stub to access the REST Methods specified in {@link ServerAPIProvider}
  */
 class RESTService(url: String): VocabularyService {
 
-    private val client = ClientBuilder.newClient()
-    private val target = client.target(url)
-    private val sessionTarget = target.path("session")
-    private val cancelTarget = target.path("cancel")
-    private val stateTarget = target.path("state")
-    private val answerTarget = target.path("answer")
-    private val correctionTarget = target.path("correction")
+    private val client = HttpClient(Apache) {
+        install(JsonFeature) {
+            serializer = GsonSerializer()
+        }
+        engine {
+            sslContext = SSLContext.getDefault()
+            followRedirects = true
+        }
+    }
+
+    private val sessionURL = "$url/api/v1/session"
+    private val cancelURL = "$url/api/v1/cancel"
+    private val stateURL = "$url/api/v1/state"
+    private val answerURL = "$url/api/v1/answer"
+    private val correctionURL = "$url/api/v1/answer"
 
     override fun createSession(description: VocabularyService.SessionDescription): VocabularyService.State {
-        val requestBuilder = sessionTarget.request()
-        val response = requestBuilder.post(Entity.json(description))
-        if (response.status == ILLEGAL_STATE_STATUS) {
-            throw IllegalStateException("A session already exists!")
+        lateinit var state: VocabularyService.State
+        runBlocking {
+            state = client.post(sessionURL, body = description)
         }
-        return response.readEntity(VocabularyService.State::class.java)
+        return state
     }
 
     override fun cancelSession(): VocabularyService.State {
-        val result = cancelTarget.request().get()
-        return result.readEntity(VocabularyService.State::class.java)
+        lateinit var state: VocabularyService.State
+        runBlocking {
+            state = client.post(cancelURL)
+        }
+        return state
     }
 
     override fun getState(): VocabularyService.State {
-        val answer = stateTarget.request().get()
-        return answer.readEntity(VocabularyService.State::class.java)
+        lateinit var state: VocabularyService.State
+        runBlocking {
+            state = client.get(stateURL)
+        }
+        return state
     }
 
     override fun answer(answer: String): VocabularyService.State {
-        val result = answerTarget.request().post(Entity.json(answer))
-        if (result.status == ILLEGAL_STATE_STATUS) {
-            throw IllegalStateException("No session exists.")
+        lateinit var state: VocabularyService.State
+        runBlocking {
+            state = client.post(answerURL, body = answer)
         }
-        return result.readEntity(VocabularyService.State::class.java)
+        return state
     }
 
     override fun correction(correct: Boolean): VocabularyService.State {
-        val result = correctionTarget.request().post(Entity.json(correct))
-        if (result.status == ILLEGAL_STATE_STATUS) {
-            throw IllegalStateException("Previous answer not correctable.")
+        lateinit var state: VocabularyService.State
+        runBlocking {
+            state = client.post(correctionURL, body = correct)
         }
-        return result.readEntity(VocabularyService.State::class.java)
+        return state
     }
 }

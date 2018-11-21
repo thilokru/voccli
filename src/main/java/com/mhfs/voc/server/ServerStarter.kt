@@ -2,15 +2,24 @@ package com.mhfs.voc.server
 
 import com.mhfs.voc.ManifestVersionProvider
 import com.mhfs.voc.VocabularyService
-import org.glassfish.grizzly.http.server.CLStaticHttpHandler
-import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory
-import org.glassfish.jersey.server.ResourceConfig
+import io.ktor.application.call
+import io.ktor.application.install
+import io.ktor.features.*
+import io.ktor.gson.gson
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.resources
+import io.ktor.http.content.static
+import io.ktor.response.respond
+import io.ktor.response.respondRedirect
+import io.ktor.routing.*
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
 import picocli.CommandLine
 import java.io.File
-import java.lang.NullPointerException
-import java.net.URI
+import java.lang.IllegalArgumentException
 import java.sql.DriverManager
-import kotlin.concurrent.thread
+import java.text.DateFormat
 
 
 @CommandLine.Command(name = "vocserv", description = ["A vocabulary server tool."], mixinStandardHelpOptions = true,
@@ -28,17 +37,58 @@ class ServerStarter(defaultLocation: String = "voc_db", loadLocation: File? = nu
         apiProvider = ServerAPIProvider(DBAccess("h2", connection), arrayOf(0, 1, 3, 7, 14, 60))
 
         if (httpServer) {
-            val baseURI = "http://localhost:8080/api"
+            val server = embeddedServer(Netty, port = 8080, host = "localhost") {
+                install(DefaultHeaders)
+                install(Compression)
+                install(CallLogging)
+                install(ContentNegotiation) {
+                    gson {
+                        setDateFormat(DateFormat.LONG)
+                        setPrettyPrinting()
+                    }
+                }
+                install(StatusPages) {
+                    exception<IllegalStateException> { cause ->
+                        call.respond(HttpStatusCode.Conflict)
+                    }
+                    exception<IllegalArgumentException> { cause ->
+                        call.respond(HttpStatusCode.RequestTimeout)
+                    }
+                }
 
-            val config = ResourceConfig()
-            config.registerInstances(apiProvider)
-
-            val server = GrizzlyHttpServerFactory.createHttpServer(URI.create(baseURI), config)
-
-            val staticResources = CLStaticHttpHandler(this::class.java.classLoader, "/web/")
-            server.serverConfiguration.addHttpHandler(staticResources, "/")
-
-            Runtime.getRuntime().addShutdownHook(thread(start = false) { server.shutdown() })
+                routing {
+                    get("/") {
+                        call.respondRedirect("index.html", permanent = true)
+                    }
+                    route("/api") {
+                        route("v1") {
+                            accept(ContentType.Application.Json) {
+                                post<VocabularyService.SessionDescription>("session") { req ->
+                                    call.respond(apiProvider.createSession(req))
+                                }
+                                post<Boolean>("correction") { correct ->
+                                    call.respond(apiProvider.correction(correct))
+                                }
+                            }
+                            accept(ContentType.Text.Plain) {
+                                post<String>("answer") { answer->
+                                    call.respond(apiProvider.answer(answer))
+                                }
+                            }
+                            get("state") {
+                                call.respond(apiProvider.getState())
+                            }
+                            post("cancel") {
+                                call.respond(apiProvider.cancelSession())
+                            }
+                        }
+                    }
+                    static("/") {
+                        resources("web")
+                    }
+                }
+            }
+            server.start()
         }
     }
 

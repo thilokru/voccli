@@ -3,11 +3,7 @@ package com.mhfs.voc.server
 import com.mhfs.voc.VocabularyService
 import com.mhfs.voc.VocabularyService.*
 import java.util.*
-import javax.ws.rs.*
-import javax.ws.rs.core.MediaType
 
-@Path("/")
-@Produces(MediaType.APPLICATION_JSON)
 class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) : VocabularyService {
 
     private var session: MutableList<DBAccess.DBQuestion>? = null
@@ -15,10 +11,8 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
     private var previousResult: Result? = null
     private var currentQuestion: DBAccess.DBQuestion? = null
 
-    @Path("session")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @POST
     override fun createSession(description: SessionDescription): State {
+        if (description.maxCount <= 0) description.maxCount = Integer.MAX_VALUE
         session = if (description.isActivation) {
             dbAccess.getVocabularyForActivation(description.maxCount)
         } else {
@@ -36,8 +30,6 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
         return getState()
     }
 
-    @Path("state")
-    @GET
     override fun getState(): State = getState(true)
 
     private fun getState(censor: Boolean): State {
@@ -51,17 +43,12 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
         }
     }
 
-    @Path("cancel")
-    @GET //Should be POST, but that requires a data transfer.
     override fun cancelSession(): State {
         session = null
         previousResult = null
         return getState()
     }
 
-    @Path("answer")
-    @Consumes(MediaType.TEXT_PLAIN)
-    @POST
     override fun answer(answer: String): State {
         if (currentQuestion == null)
             throw IllegalStateException("No current question exists to be answered.")
@@ -77,9 +64,6 @@ class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) :
         return getState(true)
     }
 
-    @Path("correction")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @POST
     override fun correction(correct: Boolean): State {
         if (session == null) {
             throw IllegalStateException("No session exists.")

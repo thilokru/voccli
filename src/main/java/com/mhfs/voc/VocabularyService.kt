@@ -14,11 +14,11 @@ interface VocabularyService {
     /**
      * If this is implemented as a web application, then the following exceptions map to the following error codes:
      * {@code IllegalStateException} -> 409 Conflict
-     * {@code IllegalArgumentException} -> 508 Loop Detected (in case of too long run times) or otherwise 406 Not Acceptable
+     * {@code IllegalArgumentException} -> 408 Request time out (in case of too long run times) or otherwise 406 Not Acceptable
      */
     companion object {
         const val ILLEGAL_STATE_STATUS = 409
-        const val ILLEGAL_ARGUMENT_STATUS = 508
+        const val ILLEGAL_ARGUMENT_STATUS = 408
     }
 
     /**
@@ -85,42 +85,27 @@ interface VocabularyService {
      * The fields assumed to be universal are {@code isActivation} and {@code maxCount}.
      * Implementers are encouraged to extend this class to convey additional information.
      */
-    open class SessionDescription() {
-        constructor(isActivation: Boolean, maxCount: Int): this() {
-            this.isActivation = isActivation
-            this.maxCount = maxCount
-        }
-        var isActivation: Boolean = false
-        var maxCount: Int = 0
-    }
+    data class SessionDescription(var isActivation: Boolean = false, var maxCount: Int = 0)
 
-    class Result(val type: ResultType, val solution: String)
+    data class Result(var type: ResultType, var solution: String)
 
     /**
      * To reduce API calls (this may be done over REST-requests and may therefore require a lot of resources), this State
      * object shall be returned.
+     *
+     * Regarding currentQuestion:
+     * This field holds the next question. Its answer field may be null, indicating, that we currently are in a
+     * vocabulary test. If it is null, the meaning depends on the states of the other fields.
+     *
+     * If currentQuestion is null, lastResult is null and remainingQuestions is 0, then there currently is no session.
+     * If currentQuestion is null, but lastResult is in state WRONG, then the answer needs to be corrected.
+     * If currentQuestion is null, but lastResult is in state UNDETERMINED, then the correctness of the answer must be reported.
+     *
+     * Regarding lastResult:
+     * Holds information about weather the last answer was correct. Can be null, if no previous answer exists.
+     *
      */
-    class State(currentQuestion: Question?, lastResult: Result?, remainingQuestions: Int) {
-        /**
-         * This field holds the next question. Its answer field may be null, indicating, that we currently are in a
-         * vocabulary test. If it is null, the meaning depends on the states of the other fields.
-         *
-         * If currentQuestion is null, lastResult is null and remainingQuestions is 0, then there currently is no session.
-         * If currentQuestion is null, but lastResult is in state WRONG, then the answer needs to be corrected.
-         * If currentQuestion is null, but lastResult is in state UNDETERMINED, then the correctness of the answer must be reported.
-         */
-        val currentQuestion: Question? = currentQuestion
-
-        /**
-         * Holds information about weather the last answer was correct. Can be null, if no previous answer exists.
-         */
-        val lastResult: Result? = lastResult
-
-        /**
-         * Remaining questions.
-         */
-        val remainingQuestions: Int = remainingQuestions
-    }
+    data class State(var currentQuestion: Question?, var lastResult: Result?, var remainingQuestions: Int)
 
     /**
      * This class describes a question, including the question itself, its language, the target language,
