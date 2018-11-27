@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>voccli</title>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+</head>
+<body>
+    <script src="main.js"></script>
+    <aside class="floating">
+        <!--Location for navigation and task selection -->
+        <form>
+            <input type="number" id="questionCount" placeholder="Question count"
+                   title="Leave empty for all available questions"/><br/>
+            <label><input type="checkbox" id="isActivation"/> Newly activate?</label><br/>
+        </form>
+        <button id="createSession" onclick="onCreateSession()">Start session</button>
+    </aside>
+    <section class="floating">
+        <!--If a session is active, place content in these place holder fields -->
+        <p id="question"></p>
+        <p id="info"></p>
+        <p id="solution"></p>
+        <textarea id="userAnswer" disabled></textarea>
+        <div id="controls">
+            <p id="remaining"></p>
+            <button id="answer" onclick="onAnswer()" disabled>Answer</button>
+            <button id="correct" onclick="onCorrect()" disabled>Correct</button>
+            <button id="incorrect" onclick="onIncorrect()" disabled>Incorrect</button>
+        </div>
+    </section>
+</body>
+</html>

@@ -1,6 +1,7 @@
 package com.mhfs.voc.server
 
 import com.mhfs.voc.VocabularyService
+import io.ktor.auth.UserPasswordCredential
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -87,7 +88,18 @@ class DBAccess(val sqlPrefix: String, private val connection: Connection) {
             pAssociationWrite.executeUpdate()
         }
     }
-    
+
+    /**
+     * @return a user id if the credentials are valid, null otherwise
+     */
+    fun authenticate(credentials: UserPasswordCredential): Int? {
+        println("Got auth call with ${credentials.name} and ${credentials.password}")
+        return 1 //TODO: Actually implement. With hash and random salt.
+    }
+
+    fun readConfiguration(session: UserSession) {
+
+    }
 
     private fun prepare(resource: String) = connection.prepareStatement(sqlFromResource(resource))
 

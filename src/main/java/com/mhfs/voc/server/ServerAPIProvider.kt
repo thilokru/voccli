@@ -1,114 +1,117 @@
 package com.mhfs.voc.server
 
-import com.mhfs.voc.VocabularyService
 import com.mhfs.voc.VocabularyService.*
 import java.util.*
 
-class ServerAPIProvider(val dbAccess: DBAccess, val phaseDuration: Array<Int>) : VocabularyService {
+/**
+ * For method details refer to {@link VocabularyService}
+ * This is a multi user server. It must support multiple sessions and therefore requires authentication and passing
+ * of the session. This is incompatible with the mentioned interface.
+ *
+ * This class may handler asynchronous calls. Concurrency problems may occur if the session is passed in a different manner.
+ *
+ * dbAccess is inherently single threaded. This may change in the future if other DBMS are used.
+ */
+class ServerAPIProvider(private val dbAccess: DBAccess) {
 
-    private var session: MutableList<DBAccess.DBQuestion>? = null
-    private var isActivation = false
-    private var previousResult: Result? = null
-    private var currentQuestion: DBAccess.DBQuestion? = null
-
-    override fun createSession(description: SessionDescription): State {
+    fun createSession(description: SessionDescription, userSession: UserSession): State {
         if (description.maxCount <= 0) description.maxCount = Integer.MAX_VALUE
-        session = if (description.isActivation) {
+        userSession.session = if (description.isActivation) {
             dbAccess.getVocabularyForActivation(description.maxCount)
         } else {
             dbAccess.getVocabulary(description.maxCount)
         }
-        isActivation = description.isActivation
-        previousResult = null
-        if (session!!.isEmpty()) {
-            session = null
-            isActivation = false
-            currentQuestion = null
+        userSession.isActivation = description.isActivation
+        userSession.previousResult = null
+        if (userSession.session!!.isEmpty()) {
+            userSession.session = null
+            userSession.isActivation = false
+            userSession.currentQuestion = null
         } else {
-            currentQuestion = session!![0]
+            userSession.currentQuestion = userSession.session!![0]
         }
-        return getState()
+        return getState(userSession)
     }
 
-    override fun getState(): State = getState(true)
+    fun getState(userSession: UserSession): State = getState(true, userSession)
 
-    private fun getState(censor: Boolean): State {
-        return if (session != null) {
-            var q  = currentQuestion
-            if (censor &&!isActivation && q != null)
+    private fun getState(censor: Boolean, userSession: UserSession): State {
+        return if (userSession.session != null) {
+            var q  = userSession.currentQuestion
+            if (censor && !userSession.isActivation && q != null)
                 q = DBAccess.DBQuestion(q.id, q.question, q.questionLanguage, null, q.targetLanguage, q.associatedData)
-            State(q, previousResult, session?.size ?: 0)
+            State(q, userSession.previousResult, userSession.session?.size ?: 0)
         } else {
-            State(null, previousResult, 0)
+            State(null, userSession.previousResult, 0)
         }
     }
 
-    override fun cancelSession(): State {
-        session = null
-        previousResult = null
-        return getState()
+    fun cancelSession(userSession: UserSession): State {
+        userSession.session = null
+        userSession.previousResult = null
+        return getState(userSession)
     }
 
-    override fun answer(answer: String): State {
-        if (currentQuestion == null)
+    fun answer(answer: String, userSession: UserSession): State {
+        if (userSession.currentQuestion == null)
             throw IllegalStateException("No current question exists to be answered.")
-        val solution = currentQuestion!!.solution!!
+        val solution = userSession.currentQuestion!!.solution!!
         val reducedSolution = solution.replace(Regex("(\\(|\\)|(\\[[^\\]]*]))"), "").trim()
-        if(answer == currentQuestion?.solution || answer == reducedSolution) {
-            markQuestion(true)
-        } else if(currentQuestion!!.solution!!.contains(answer)) {
-            previousResult = Result(ResultType.UNDETERMINED, currentQuestion!!.solution!!)
+        if(answer == userSession.currentQuestion?.solution || answer == reducedSolution) {
+            markQuestion(true, userSession)
+        } else if(userSession.currentQuestion!!.solution!!.contains(answer) && !answer.trim().isEmpty()) {
+            userSession.previousResult = Result(ResultType.UNDETERMINED, userSession.currentQuestion!!.solution!!)
         } else {
-            markQuestion(false)
+            markQuestion(false, userSession)
         }
-        return getState(true)
+        return getState(true, userSession)
     }
 
-    override fun correction(correct: Boolean): State {
-        if (session == null) {
+    fun correction(correct: Boolean, userSession: UserSession): State {
+        if (userSession.session == null) {
             throw IllegalStateException("No session exists.")
         }
-        if (currentQuestion == null) {
+        if (userSession.currentQuestion == null) {
             throw IllegalStateException("No current question.")
         }
-        if (!(previousResult != null && previousResult!!.type == ResultType.UNDETERMINED)) {
+        if (!(userSession.previousResult != null && userSession.previousResult!!.type == ResultType.UNDETERMINED)) {
             throw IllegalStateException("Not correcting.")
         }
-        markQuestion(correct)
-        return getState()
+        markQuestion(correct, userSession)
+        return getState(userSession)
     }
 
-    private fun markQuestion(correct: Boolean) {
-        session!!.remove(currentQuestion)
-        val q = currentQuestion!!
+    private fun markQuestion(correct: Boolean, userSession: UserSession) {
+        userSession.session!!.remove(userSession.currentQuestion)
+        val q = userSession.currentQuestion!!
         val currentPhase = (q.associatedData["phase"]?.toInt() ?:0)
         if (correct) {
             val newPhase = currentPhase + 1
             q.associatedData["phase"] = newPhase.toString()
-            if (isActivation) {
+            if (userSession.isActivation) {
                 dbAccess.activate(q)
             } else {
                 val cal = Calendar.getInstance()
                 cal.time = Date()
-                cal.add(Calendar.DAY_OF_MONTH, phaseDuration[newPhase - 1])
+                cal.add(Calendar.DAY_OF_MONTH, userSession.phaseDuration[newPhase - 1])
                 dbAccess.updateQuestion(q, cal.time)
             }
-            previousResult = Result(ResultType.CORRECT, currentQuestion!!.solution!!)
-        } else if (!isActivation) {
-            session!!.add(currentQuestion!!) //Q was answered incorrectly, we need to ask again.
+            userSession.previousResult = Result(ResultType.CORRECT, userSession.currentQuestion!!.solution!!)
+        } else if (!userSession.isActivation) {
+            userSession.session!!.add(userSession.currentQuestion!!) //Q was answered incorrectly, we need to ask again.
             val newPhase = Math.max(currentPhase - 1, 1)
             q.associatedData["phase"] = newPhase.toString()
             val cal = Calendar.getInstance()
             cal.time = Date()
-            cal.add(Calendar.DAY_OF_MONTH, phaseDuration[newPhase - 1])
+            cal.add(Calendar.DAY_OF_MONTH, userSession.phaseDuration[newPhase - 1])
             dbAccess.updateQuestion(q, cal.time)
-            previousResult = Result(ResultType.WRONG, currentQuestion!!.solution!!)
+            userSession.previousResult = Result(ResultType.WRONG, userSession.currentQuestion!!.solution!!)
         }
-        if (session!!.isEmpty()) {
-            session = null
-            currentQuestion = null
+        if (userSession.session!!.isEmpty()) {
+            userSession.session = null
+            userSession.currentQuestion = null
         } else {
-            currentQuestion = session!![0]
+            userSession.currentQuestion = userSession.session!![0]
         }
     }
 }

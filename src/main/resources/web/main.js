@@ -138,7 +138,7 @@ async function getPOSTResponseRawIn(path, rawIn, type) {
         method: 'POST',
         body: rawIn,
         headers:{
-          'Content-Type': type
+          'Content-Type': type + "; charset=utf-8"
         }
     });
     return response.then(result => result.json());

@@ -15,7 +15,7 @@ import kotlin.concurrent.thread
 class ClientStarter: Runnable {
 
     @Option(description = ["Which endpoint to connect to."], names = ["--endpoint"], paramLabel = "(LOCAL|WEB)")
-    private var endPoint = EndPoint.LOCAL
+    private var endPoint = EndPoint.WEB
 
     @Option(description = ["Points to a file with data to load."], names = ["--load"], paramLabel = "FILE")
     private var loadLocation: File? = null
@@ -25,30 +25,30 @@ class ClientStarter: Runnable {
 
     override fun run() {
         val service = endPoint.connect(target, loadLocation)
-        if (endPoint == EndPoint.BROWSER)
-            return
+        /*if (endPoint == EndPoint.BROWSER)
+            return*/
         CLI(RootHandler(service)).start()
     }
 
     enum class EndPoint {
-        LOCAL {
+        /*LOCAL {
             override fun connect(target: String, loadLocation: File?): VocabularyService {
                 val server = ServerStarter(defaultLocation = target, loadLocation = loadLocation)
                 server.run()
                 return server.getService()
             }
-        }, WEB {
+        }, */WEB {
             override fun connect(target: String, loadLocation: File?): VocabularyService {
                 return RESTService(target)
             }
-        }, BROWSER {
+        }/*, BROWSER {
             override fun connect(target: String, loadLocation: File?): VocabularyService {
                 val server = ServerStarter(defaultLocation = target, loadLocation = loadLocation, httpServer = true)
                 server.run()
                 Desktop.getDesktop().browse(URI("http://localhost:8080/index.html"))
                 return server.getService()
             }
-        };
+        }*/;
         abstract fun connect(target: String, loadLocation: File?): VocabularyService
     }
 }

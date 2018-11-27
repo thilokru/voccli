@@ -1,5 +1,7 @@
 package com.mhfs.voc
 
+import java.io.Serializable
+
 /**
  * This interface specifies the behaviour of the application providing the questions.
  * As this may later be implemented by a web service, and the user may be malicious, it is vital that all necessary data
@@ -85,9 +87,9 @@ interface VocabularyService {
      * The fields assumed to be universal are {@code isActivation} and {@code maxCount}.
      * Implementers are encouraged to extend this class to convey additional information.
      */
-    data class SessionDescription(var isActivation: Boolean = false, var maxCount: Int = 0)
+    data class SessionDescription(var isActivation: Boolean = false, var maxCount: Int = 0): Serializable
 
-    data class Result(var type: ResultType, var solution: String)
+    data class Result(var type: ResultType, var solution: String): Serializable
 
     /**
      * To reduce API calls (this may be done over REST-requests and may therefore require a lot of resources), this State
@@ -105,7 +107,7 @@ interface VocabularyService {
      * Holds information about weather the last answer was correct. Can be null, if no previous answer exists.
      *
      */
-    data class State(var currentQuestion: Question?, var lastResult: Result?, var remainingQuestions: Int)
+    data class State(var currentQuestion: Question?, var lastResult: Result?, var remainingQuestions: Int): Serializable
 
     /**
      * This class describes a question, including the question itself, its language, the target language,
@@ -114,7 +116,7 @@ interface VocabularyService {
      */
     open class Question(val question: String, val questionLanguage: String,
                    val solution: String?, val targetLanguage: String,
-                   val associatedData: MutableMap<String, String>)
+                   val associatedData: MutableMap<String, String>): Serializable
 
     enum class ResultType {CORRECT, WRONG, UNDETERMINED}
 }
