@@ -17,9 +17,9 @@ class ServerAPIProvider(private val dbAccess: DBAccess) {
     fun createSession(description: SessionDescription, userSession: UserSession): State {
         if (description.maxCount <= 0) description.maxCount = Integer.MAX_VALUE
         userSession.session = if (description.isActivation) {
-            dbAccess.getVocabularyForActivation(description.maxCount)
+            dbAccess.getVocabularyForActivation(userSession.userID, description.maxCount)
         } else {
-            dbAccess.getVocabulary(description.maxCount)
+            dbAccess.getVocabulary(userSession.userID, description.maxCount)
         }
         userSession.isActivation = description.isActivation
         userSession.previousResult = null
@@ -39,7 +39,8 @@ class ServerAPIProvider(private val dbAccess: DBAccess) {
         return if (userSession.session != null) {
             var q  = userSession.currentQuestion
             if (censor && !userSession.isActivation && q != null)
-                q = DBAccess.DBQuestion(q.id, q.question, q.questionLanguage, null, q.targetLanguage, q.associatedData)
+                q = DBAccess.DBQuestion(q.id, q.uid, q.question, q.questionLanguage, null, q.targetLanguage,
+                        q.phase, q.associatedData)
             State(q, userSession.previousResult, userSession.session?.size ?: 0)
         } else {
             State(null, userSession.previousResult, 0)
@@ -84,26 +85,23 @@ class ServerAPIProvider(private val dbAccess: DBAccess) {
     private fun markQuestion(correct: Boolean, userSession: UserSession) {
         userSession.session!!.remove(userSession.currentQuestion)
         val q = userSession.currentQuestion!!
-        val currentPhase = (q.associatedData["phase"]?.toInt() ?:0)
         if (correct) {
-            val newPhase = currentPhase + 1
-            q.associatedData["phase"] = newPhase.toString()
+            q.phase++
             if (userSession.isActivation) {
                 dbAccess.activate(q)
             } else {
                 val cal = Calendar.getInstance()
                 cal.time = Date()
-                cal.add(Calendar.DAY_OF_MONTH, userSession.phaseDuration[newPhase - 1])
+                cal.add(Calendar.DAY_OF_MONTH, userSession.phaseDuration[q.phase - 1])
                 dbAccess.updateQuestion(q, cal.time)
             }
             userSession.previousResult = Result(ResultType.CORRECT, userSession.currentQuestion!!.solution!!)
         } else if (!userSession.isActivation) {
             userSession.session!!.add(userSession.currentQuestion!!) //Q was answered incorrectly, we need to ask again.
-            val newPhase = Math.max(currentPhase - 1, 1)
-            q.associatedData["phase"] = newPhase.toString()
+            q.phase = Math.max(q.phase - 1, 1)
             val cal = Calendar.getInstance()
             cal.time = Date()
-            cal.add(Calendar.DAY_OF_MONTH, userSession.phaseDuration[newPhase - 1])
+            cal.add(Calendar.DAY_OF_MONTH, userSession.phaseDuration[q.phase - 1])
             dbAccess.updateQuestion(q, cal.time)
             userSession.previousResult = Result(ResultType.WRONG, userSession.currentQuestion!!.solution!!)
         }

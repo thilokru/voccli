@@ -1,1 +1,1 @@
-INSERT INTO Active(question_id, next_due) VALUES(?, TODAY)
+INSERT INTO Vocabulary_State(user_id, question_id, phase, next_due) VALUES(?, ?, ?, TODAY)

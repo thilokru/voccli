@@ -13,7 +13,7 @@ class GsonSessionSerializer(val type: java.lang.reflect.Type,
     private val gson: Gson
     init {
         val builder = GsonBuilder()
-        builder.registerTypeAdapter(String.javaClass, object: TypeAdapter<String>() {
+        builder.registerTypeAdapter(String::class.java, object: TypeAdapter<String>() {
             override fun write(out: JsonWriter, value: String) {
                 out.value(Base64.getEncoder().encodeToString(value.toByteArray(Charsets.UTF_8)))
             }

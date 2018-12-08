@@ -1,1 +1,0 @@
-UPDATE Active SET next_due = ? WHERE question_id = ?;

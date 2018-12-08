@@ -97,10 +97,7 @@ function displayState(state) {
         } else {
             solution.innerHTML = "";
         }
-        var phase = state.currentQuestion.associatedData.phase;
-        if (phase == null || phase == undefined) {
-            phase = 0;
-        }
+        var phase = state.currentQuestion.phase;
         var usage = state.currentQuestion.associatedData.usage;
         info.innerHTML = "Phase: " + phase + " Usage: " + usage;
         remaining.innerHTML = "Remaining: " + state.remainingQuestions;

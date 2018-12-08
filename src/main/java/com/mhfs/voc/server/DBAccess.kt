@@ -42,17 +42,17 @@ class DBAccess(val sqlPrefix: String, private val connection: Connection) {
     private val pVocabularySelect = prepare("/$sqlPrefix/select_active_content.sql")
     private val pActivationSelect = prepare("/$sqlPrefix/select_inactive_content.sql")
     private val pAssociationRetrieval = prepare("/$sqlPrefix/select_associated_data.sql")
-    private val pAssociationWrite = prepare("/$sqlPrefix/write_association.sql")
-    private val pDateWrite = prepare("/$sqlPrefix/write_date.sql")
+    private val pDateWrite = prepare("/$sqlPrefix/write_phase.sql")
     private val pWriteActive = prepare("/$sqlPrefix/write_activation.sql")
     private val pGetPassword = prepare("/$sqlPrefix/get_password_hash.sql")
     private val pCreateUser = prepareIdReturn("/$sqlPrefix/create_user.sql")
 
     private val secureRandom = SecureRandom()
 
-    fun getVocabulary(maxCount: Int): MutableList<DBQuestion> {
-        pVocabularySelect.setDate(1, SDate(UDate().time))
-        pVocabularySelect.setInt(2, maxCount)
+    fun getVocabulary(userID: Int, maxCount: Int): MutableList<DBQuestion> {
+        pVocabularySelect.setInt(1, userID)
+        pVocabularySelect.setDate(2, SDate(UDate().time))
+        pVocabularySelect.setInt(3, maxCount)
         val results = pVocabularySelect.executeQuery()
         val vocabularyList = LinkedList<DBQuestion>()
         while (results.next()) {
@@ -60,14 +60,16 @@ class DBAccess(val sqlPrefix: String, private val connection: Connection) {
             pAssociationRetrieval.setInt(1, results.getInt(1))
             val asResult = pAssociationRetrieval.executeQuery()
             while (asResult.next()) associatedData[asResult.getString(1)] = asResult.getString(2)
-            vocabularyList += DBQuestion(results.getInt(1), results.getString(2), results.getString(3),
-                    results.getString(4), results.getString(5), associatedData)
+            vocabularyList += DBQuestion(results.getInt(1), userID, results.getString(2),
+                    results.getString(3), results.getString(4), results.getString(5),
+                    results.getInt(6), associatedData)
         }
         return vocabularyList
     }
 
-    fun getVocabularyForActivation(maxCount: Int): MutableList<DBQuestion> {
-        pActivationSelect.setInt(1, maxCount)
+    fun getVocabularyForActivation(userID: Int, maxCount: Int): MutableList<DBQuestion> {
+        pActivationSelect.setInt(1, userID)
+        pActivationSelect.setInt(2, maxCount)
         val results = pActivationSelect.executeQuery()
         val vocabularyList = LinkedList<DBQuestion>()
         while (results.next()) {
@@ -75,33 +77,26 @@ class DBAccess(val sqlPrefix: String, private val connection: Connection) {
             pAssociationRetrieval.setInt(1, results.getInt(1))
             val asResult = pAssociationRetrieval.executeQuery()
             while (asResult.next()) associatedData[asResult.getString(1)] = asResult.getString(2)
-            vocabularyList += DBQuestion(results.getInt(1), results.getString(2), results.getString(3),
-                    results.getString(4), results.getString(5), associatedData)
+            vocabularyList += DBQuestion(results.getInt(1), userID, results.getString(2),
+                    results.getString(3), results.getString(4), results.getString(5),
+                    0, associatedData)
         }
         return vocabularyList
     }
 
     fun updateQuestion(question: DBQuestion, nextDue: UDate) {
-        question.associatedData.forEach{
-            pAssociationWrite.setInt(1, question.id)
-            pAssociationWrite.setString(2, it.key)
-            pAssociationWrite.setString(3, it.value)
-            pAssociationWrite.executeUpdate()
-        }
-        pDateWrite.setDate(1, SDate(nextDue.time))
-        pDateWrite.setInt(2, question.id)
+        pDateWrite.setInt(1, question.phase)
+        pDateWrite.setDate(2, SDate(nextDue.time))
+        pDateWrite.setInt(3, question.uid)
+        pDateWrite.setInt(4, question.id)
         pDateWrite.executeUpdate()
     }
 
     fun activate(question: DBQuestion) {
-        pWriteActive.setInt(1, question.id)
+        pWriteActive.setInt(1, question.uid)
+        pWriteActive.setInt(2, question.id)
+        pWriteActive.setInt(3, question.phase)
         pWriteActive.executeUpdate()
-        question.associatedData.forEach{
-            pAssociationWrite.setInt(1, question.id)
-            pAssociationWrite.setString(2, it.key)
-            pAssociationWrite.setString(3, it.value)
-            pAssociationWrite.executeUpdate()
-        }
     }
 
     /**
@@ -203,8 +198,8 @@ class DBAccess(val sqlPrefix: String, private val connection: Connection) {
         }
     }
 
-    class DBQuestion(val id: Int, question: String, questionLanguage: String,
-                     solution: String?, targetLanguage: String,
+    class DBQuestion(val id: Int, val uid: Int, question: String, questionLanguage: String,
+                     solution: String?, targetLanguage: String, var phase: Int,
                      associatedData: MutableMap<String, String>):
             VocabularyService.Question(question, questionLanguage, solution, targetLanguage, associatedData)
 }

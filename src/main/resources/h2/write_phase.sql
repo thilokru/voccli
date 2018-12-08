@@ -1,0 +1,1 @@
+UPDATE Vocabulary_state SET phase = ?, next_due = ? WHERE user_id = ? AND question_id = ?;
