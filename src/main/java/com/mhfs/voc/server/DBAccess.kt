@@ -162,7 +162,7 @@ class DBAccess(val sqlPrefix: String, private val connection: Connection) {
      * PBKDF2 based password hashing.
      * @param password The plain text password to be hashed
      * @param salt The salt
-     * @return The base64 encoded password hash
+     * @return The password hash
      */
     private fun hash(password: String, salt: ByteArray): ByteArray {
         val spec = PBEKeySpec(password.toCharArray(), salt, HASHING_ITERATIONS, HASH_LENGTH)
