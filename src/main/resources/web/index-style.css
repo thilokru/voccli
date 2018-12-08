@@ -1,0 +1,34 @@
+body {
+  display: grid;
+  grid-template-columns: 1fr 50em 15em 1fr;
+  grid-template-rows: 1fr 20em 1fr;
+  grid-template-areas:
+    ". . . ."
+    ". center links ."
+    ". . . .";
+  grid-row-gap: 1em;
+  grid-column-gap: 1em;
+
+  height: 95vh;
+}
+section {
+  grid-area: center;
+}
+aside {
+  display: grid;
+  grid-area: links;
+  grid-template-columns: 1fr;
+  grid-template-rows: 2em 2em 1fr;
+  grid-template-areas:
+    "session"
+    "register"
+    ".";
+  grid-row-gap: 1em;
+  grid-column-gap: 1em;
+}
+#session {
+  grid-area: session;
+}
+#register {
+  grid-area: register;
+}

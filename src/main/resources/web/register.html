@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+    <link rel="stylesheet" type="text/css" href="login-style.css"/>
+    <script>
+        function appendText() {
+            let url = window.location.href;
+            if (url.includes("exists=true")) {
+                error.style = "";
+            }
+        }
+
+        window.onload=appendText;
+    </script>
+</head>
+<body>
+<section class="floating">
+    <p id="message">
+        To register, please enter your future credentials below.<br/>
+        <span class="warning" style="display:none" id="error">The username already exists.</span>
+    </p>
+    <form method="post" action = "/register">
+        <input type="text" name="user" placeholder="user name" id="username"/><br/>
+        <input type="password" name="password" placeholder="password" id="password"/><br/>
+        <button id="login">Register</button>
+    </form>
+</section>
+</body>
+</html>

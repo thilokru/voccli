@@ -57,7 +57,7 @@ dependencies {
 task runServer(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
     main = server_main
-    args "./nv_db"
+    args "--debug-user", "./nv_db"
 }
 
 task runBrowser(type: JavaExec) {

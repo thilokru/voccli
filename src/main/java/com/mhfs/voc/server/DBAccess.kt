@@ -5,14 +5,25 @@ import io.ktor.auth.UserPasswordCredential
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
+import java.security.SecureRandom
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.SQLException
 import java.util.*
 import java.util.Date as UDate
 import java.sql.Date as SDate
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
+
+
 
 class DBAccess(val sqlPrefix: String, private val connection: Connection) {
+
+    companion object {
+        const val HASHING_ITERATIONS = 65536
+        const val HASH_LENGTH = 512
+        const val SALT_LENGTH = 16
+    }
 
     init {
         val statement = connection.createStatement()
@@ -34,6 +45,10 @@ class DBAccess(val sqlPrefix: String, private val connection: Connection) {
     private val pAssociationWrite = prepare("/$sqlPrefix/write_association.sql")
     private val pDateWrite = prepare("/$sqlPrefix/write_date.sql")
     private val pWriteActive = prepare("/$sqlPrefix/write_activation.sql")
+    private val pGetPassword = prepare("/$sqlPrefix/get_password_hash.sql")
+    private val pCreateUser = prepareIdReturn("/$sqlPrefix/create_user.sql")
+
+    private val secureRandom = SecureRandom()
 
     fun getVocabulary(maxCount: Int): MutableList<DBQuestion> {
         pVocabularySelect.setDate(1, SDate(UDate().time))
@@ -90,11 +105,74 @@ class DBAccess(val sqlPrefix: String, private val connection: Connection) {
     }
 
     /**
+     * Uses the {@see hash} method to calculate the salted hash.
      * @return a user id if the credentials are valid, null otherwise
      */
     fun authenticate(credentials: UserPasswordCredential): Int? {
-        println("Got auth call with ${credentials.name} and ${credentials.password}")
-        return 1 //TODO: Actually implement. With hash and random salt.
+        //Note, that credentials.name is unfiltered user input.
+        //This is a prepared statement. SQL-Injections should not be possible.
+        pGetPassword.setString(1, credentials.name)
+        val result = pGetPassword.executeQuery()
+        if (result.next()) {
+            //To hash the password, we need the salt.
+            val salt = result.getBytes(2)
+            //We calculate the hash
+            val hash = hash(credentials.password, salt)
+            //If the hashes match...
+            return if (hash.contentEquals(result.getBytes(3))) {
+                //then return the user id
+                result.getInt(1)
+            } else {
+                //Otherwise the user could not be authenticated and we return null
+                null
+            }
+        } else {
+            //There was no user with that name. However, the method returns null, just like if the password is wrong,
+            //so that a potential attacker can't differentiate between 'no such user' and 'wrong password'
+            return null
+        }
+    }
+
+    /**
+     * @return The newly created user id or null, if a name collision occurred
+     */
+    fun register(user: String, password: String): Int? {
+        //Note, that user may be unfiltered user input.
+        //This is a prepared statement. SQL-Injections should not be possible.
+        pGetPassword.setString(1, user)
+        val result = pGetPassword.executeQuery()
+        if (result.next()) {
+            //This username already exists.
+            return null
+        }
+        //First, we need a nice salt. We use a cryptographic RNG
+        val salt = ByteArray(SALT_LENGTH)
+        secureRandom.nextBytes(salt)
+
+        //Retrieve the password hash
+        val hash = hash(password, salt)
+        //Store the user data and get the newly generated user id.
+        pCreateUser.setString(1, user)
+        pCreateUser.setBytes(2, salt)
+        pCreateUser.setBytes(3, hash)
+        pCreateUser.execute()
+        val keys = pCreateUser.generatedKeys
+        //We want the first key
+        keys.next()
+        //Return the newly generated id.
+        return keys.getInt(1)
+    }
+
+    /**
+     * PBKDF2 based password hashing.
+     * @param password The plain text password to be hashed
+     * @param salt The salt
+     * @return The base64 encoded password hash
+     */
+    private fun hash(password: String, salt: ByteArray): ByteArray {
+        val spec = PBEKeySpec(password.toCharArray(), salt, HASHING_ITERATIONS, HASH_LENGTH)
+        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+        return factory.generateSecret(spec).encoded
     }
 
     fun readConfiguration(session: UserSession) {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+    <link rel="stylesheet" type="text/css" href="login-style.css"/>
+</head>
+<body>
+<section class="floating">
+    <p id="message">
+        The resource you requested requires you to be logged in.<br/>
+        Please enter your credentials below to continue.
+    </p>
+    <form method="post" action = "/login">
+        <input type="text" name="user" placeholder="user name" id="username"/><br/>
+        <input type="password" name="password" placeholder="password" id="password"/><br/>
+        <button id="login">Login</button>
+    </form>
+</section>
+</body>
+</html>

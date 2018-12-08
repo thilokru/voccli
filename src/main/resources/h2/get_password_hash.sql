@@ -1,0 +1,1 @@
+SELECT user_id, salt, password_hash FROM Users WHERE username = ?;

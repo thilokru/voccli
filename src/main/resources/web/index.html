@@ -2,16 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>VocCLI Web - Home</title>
     <link rel="stylesheet" type="text/css" href="style.css"/>
+    <link rel="stylesheet" type="text/css" href="index-style.css"/>
 </head>
 <body>
-<section class="floating">
-    <form method="post" action = "/login">
-        <input type="text" name="user" placeholder="user name"/><br/>
-        <input type="password" name="password" placeholder="password"/><br/>
-        <button>Login</button>
-    </form>
-</section>
+    <section class="floating">
+        <article>
+            <h1>Welcome to VocCLI Web!</h1>
+            This web application is an open source vocabulary system. In contrast to commercial solutions, you can stay
+            in control of your data. <br/>
+            To host this application on your own machine, simply retrieve the source from its Github page, build and
+            run it. <br/>
+            The newest features are:
+            <ul>
+                <li>Multi user support.</li>
+                <li>TODO: API documentation</li>
+            </ul>
+        </article>
+    </section>
+    <aside class="floating">
+        <a href="/session.html" class="button" id="session">Start session</a>
+        <a href="/register.html" class="button" id="register">Register</a>
+    </aside>
 </body>
 </html>

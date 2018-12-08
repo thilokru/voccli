@@ -1,0 +1,1 @@
+INSERT INTO Users(username, salt, password_hash) VALUES(?, ?, ?);
