@@ -128,7 +128,7 @@ class ServerStarter(defaultLocation: String = "voc_db") : Runnable {
                         //Only authenticated users may create sessions
                         authenticate("api-user") {
                             accept(ContentType.Application.Json) {
-                                post<VocabularyService.SessionDescription>("session") { req ->
+                                post<SelectingSessionDescription>("session") { req ->
                                     call.respond(apiProvider.createSession(req, call.sessions.get<UserSession>()!!))
                                 }
                                 post<Boolean>("correction") { correct ->
@@ -152,7 +152,7 @@ class ServerStarter(defaultLocation: String = "voc_db") : Runnable {
                 //Login method. Authentication parses form data.
                 authenticate("api-user") {
                     post("/login") {
-                        call.respondRedirect("/session.html", permanent = true)
+                        call.respondRedirect("/index.html", permanent = false)
                     }
                 }
                 //Registration method.
@@ -186,9 +186,12 @@ class ServerStarter(defaultLocation: String = "voc_db") : Runnable {
                     resource("login-style.css", "web/login-style.css")
                     resource("index-style.css", "web/index-style.css")
                     resource("session-style.css", "web/session-style.css")
+                    resource("create-session-style.css", "web/create-session-style.css")
                     authenticate("api-user") {
                         resource("session.html", "web/session.html")
                         resource("main.js", "web/main.js")
+                        resource("create-session.html", "web/create-session.html")
+                        resource("session-create.js", "web/session-create.js")
                     }
                 }
             }

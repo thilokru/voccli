@@ -14,7 +14,7 @@ import java.util.*
  */
 class ServerAPIProvider(private val dbAccess: DBAccess) {
 
-    fun createSession(description: SessionDescription, userSession: UserSession): State {
+    fun createSession(description: SelectingSessionDescription, userSession: UserSession): State {
         if (description.maxCount <= 0) description.maxCount = Integer.MAX_VALUE
         userSession.session = if (description.isActivation) {
             dbAccess.getVocabularyForActivation(userSession.userID, description.maxCount)

@@ -1,21 +1,15 @@
 body {
   display: grid;
-  grid-template-columns: 1fr 12em 40em 1fr;
+  grid-template-columns: 1fr 40em 1fr;
   grid-template-rows: 1fr 20em 1fr;
   grid-template-areas:
-    ". . . ."
-    ". sidebar main ."
-    ". . . .";
+    ". . ."
+    ". main ."
+    ". . .";
   grid-row-gap: 1em;
   grid-column-gap: 1em;
 
   height: 95vh;
-}
-aside {
-  grid-area: sidebar;
-  display: grid;
-  grid-template-rows: auto 2em;
-  grid-row-gap: 0.2em
 }
 section {
   grid-area: main;

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VocCLI Web - Create session</title>
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+    <link rel="stylesheet" type="text/css" href="create-session-style.css"/>
+    <script src="session-create.js"></script>
+</head>
+<body onload="onLoad()">
+    <!--Continue learning already activated vocabulary-->
+    <section class="floating" id="existing">
+        <h1 style="grid-area:header;">Train vocabulary</h1>
+        <input type="number" id="continueCount" placeholder="Question count"
+                   title="Leave empty for all available questions" style="grid-area:count;"/>
+        <label style="grid-area:lang;">
+            Language
+            <select name="lang" id="continueLang">
+            </select>
+        </label>
+        <button id="continueSession" onclick="onContinueSession()" style="grid-area:start;">Continue</button>
+    </section>
+
+    <!--Activate new vocabulary-->
+    <section class="floating" id="new">
+        <h1 style="grid-area:header;">Activate new vocabulary</h1>
+        <label style="grid-area:language;">
+            Language<br/>
+            <select size="4" name="lang" id="newLang" class="selectList" onchange="langChange()">
+                <option>a</option>
+                <option>b</option>
+            </select>
+        </label>
+        <label style="grid-area:book;">
+            Book<br/>
+            <select size="4" name="book" id="newBook" class="selectList" onchange="bookChange()">
+            </select>
+        </label>
+        <label style="grid-area:chapter;">
+            Section<br/>
+            <select multiple name="chapter" id="newChapter" class="selectList">
+            </select>
+        </label>
+        <input type="number" id="newCount" placeholder="Question count"
+               title="Leave empty for all available questions" style="grid-area:count;"/>
+        <button id="newSession" onclick="onNewSession()" style="grid-area:start;">Activate</button>
+    </section>
+</body>
+</html>

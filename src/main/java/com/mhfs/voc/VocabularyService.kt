@@ -87,7 +87,7 @@ interface VocabularyService {
      * The fields assumed to be universal are {@code isActivation} and {@code maxCount}.
      * Implementers are encouraged to extend this class to convey additional information.
      */
-    data class SessionDescription(var isActivation: Boolean = false, var maxCount: Int = 0): Serializable
+    open class SessionDescription(var isActivation: Boolean = false, var maxCount: Int = 0): Serializable
 
     data class Result(var type: ResultType, var solution: String): Serializable
 

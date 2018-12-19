@@ -2,23 +2,7 @@ var persistentState;
 let states = {Questions: 0, Correcting: 1, Feedback: 2, NoQuestions: 4};
 Object.freeze(states);
 var systemState = states.NoQuestions;
-window.onunload = function() {
-    getPOSTResponse("/api/v1/cancel", null);
-}
-
-function onCreateSession() {
-    var qC = -1;
-    var tmp = parseInt(questionCount.value);
-    if (tmp > 0) {
-        qC = tmp
-    }
-    const myBody = {
-        isActivation: isActivation.checked,
-        maxCount: qC
-    };
-    console.log("Invoking session creation.")
-    getPOSTResponse("/api/v1/session", myBody).then(displayState);
-}
+fetch("/api/v1/state").then(response => response.json()).then(displayState);
 
 function onAnswer() { //Handles button presses from button 'answer'
     console.log("Posting answer: " + userAnswer.value)
@@ -63,7 +47,8 @@ function displayState(state) {
         if (state.remainingQuestions != 0) {
             systemState = states.Questions;
         } else {
-            alert("You are done for today!")
+            alert("You are done for today!");
+            window.location.href = "/create-session.html";
         }
     }
 
@@ -71,7 +56,6 @@ function displayState(state) {
 
     //Enable and disable UI state according to systemState
     if (systemState == states.NoQuestions) { //A session does not exist.
-        disableForm(false)
         userAnswer.disabled = true;
         answer.disabled = true
         correct.disabled = true;
@@ -83,7 +67,6 @@ function displayState(state) {
         remaining.innerHTML = "Remaining: 0";
         userAnswer.value = "";
     } else if (systemState == states.Questions) {
-        disableForm(true)
         userAnswer.disabled = false;
         answer.disabled = false
         correct.disabled = true;
@@ -102,7 +85,6 @@ function displayState(state) {
         info.innerHTML = "Phase: " + phase + " Usage: " + usage;
         remaining.innerHTML = "Remaining: " + state.remainingQuestions;
     } else if (systemState == states.Correcting) {
-        disableForm(true)
         userAnswer.disabled = true;
         answer.disabled = true;
         correct.disabled = true;
@@ -110,23 +92,12 @@ function displayState(state) {
 
         solution.innerHTML = state.lastResult.solution;
     } else if (systemState == states.Feedback) {
-        disableForm(true)
         userAnswer.disabled = true;
         answer.disabled = true;
         correct.disabled = false;
         incorrect.disabled = false;
 
         solution.innerHTML = state.lastResult.solution;
-    }
-}
-
-function disableForm(disabled) {
-    questionCount.disabled = disabled
-    isActivation.disabled = disabled
-    createSession.disabled = disabled
-    if (!disabled) {
-        questionCount.value = "";
-        isActivation.checked = false;
     }
 }
 

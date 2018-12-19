@@ -1,0 +1,46 @@
+body {
+  display: grid;
+  grid-template-columns: 1fr 15em 30em 1fr;
+  grid-template-rows: 1fr 20em 1fr;
+  grid-template-areas:
+    ". . . ."
+    ". existing new ."
+    ". . . .";
+  grid-row-gap: 1em;
+  grid-column-gap: 1em;
+
+  height: 95vh;
+}
+#existing {
+  grid-area: existing;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 3em 1.5em 1.5em 1fr 2em;
+  grid-template-areas:
+    "header"
+    "count"
+    "lang"
+    "."
+    "start";
+  grid-row-gap: 0.25em;
+}
+#new {
+  grid-area: new;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 3em 1fr 2em;
+  grid-template-areas:
+    "header header ."
+    "language book chapter"
+    ". count start";
+  grid-row-gap: 0.25em;
+  grid-column-gap: 0.25em;
+}
+#newCount {
+  height: 1.5em;
+}
+.selectList {
+  display: block;
+  width: 100%;
+  height: calc(100% - 1.5em);
+}
